@@ -22,7 +22,7 @@ parser.add_argument('--model_dir', default='../result/model/', help='folder to o
 parser.add_argument('--output_dir', default='../result/image/', help='folder to output log')
 
 parser.add_argument('--unet_depth', default=6, type=int, help='show step')
-parser.add_argument('--start_filters', default=16, type=int, help='show step')
+parser.add_argument('--start_filters', default=32, type=int, help='show step')
 
 parser.add_argument('--loss', default='iou', type=str)
 parser.add_argument('--metric', default='iou', type=str)
