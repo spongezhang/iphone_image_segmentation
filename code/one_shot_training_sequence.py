@@ -39,15 +39,15 @@ class OneShotTrainingSequence(Sequence):
         return np.asarray(image_list), np.asarray(mask_list), file_name_list
 
     def __len__(self):
-        return int(self.image_list.shape[0] / float(self.batch_size))
+        return self.image_list.shape[0]#int(self.image_list.shape[0] / float(self.batch_size))
 
     def __getitem__(self, idx):
-        idx = random.randint(0,self.image_list.shape[0]-1)
         batch_x = np.zeros(shape=(self.batch_size, self.image_width, self.image_height, 3), dtype=np.float32)
         batch_y = np.zeros(shape=(self.batch_size, self.image_width, self.image_height, 1), dtype=np.uint8)
 
         for i in range(self.batch_size):
             if self.da:
+                idx = random.randint(0,self.image_list.shape[0]-1)
                 #augmentation
                 if random.random() < -0.7:
                     angle = 0
@@ -80,20 +80,23 @@ class OneShotTrainingSequence(Sequence):
 
                 transformed_image = cv2.warpPerspective(self.image_list[idx], transform_matrix, (self.image_width, self.image_height),\
                         flags=cv2.INTER_LINEAR, borderValue = (255,255,255))
-                transformed_mask = np.zeros((self.image_height, self.image_width, 1), dtype = np.uint8)
+                transformed_mask = np.zeros((self.image_height, self.image_width), dtype = np.uint8)
 
                 temp_mask = cv2.warpPerspective(self.mask_list[idx], transform_matrix, (self.image_width, self.image_height),\
                         flags=cv2.INTER_NEAREST, borderValue = (0))
                 transformed_mask[temp_mask>100] = 255
 
-                aug_image = self.seq.augment_image(transformed_image)
+                ##aug_image = self.seq.augment_image(transformed_image)
+                aug_image = transformed_image
                 #show_mask = utils.drawMultiRegionMultiChannel(transformed_mask)
                 ##aug_image = cv2.equalizeHist(aug_image)
                 #cv2.imwrite('../data/augmentation/{}_img.png'.format(i), aug_image)
                 #cv2.imwrite('../data/augmentation/{}_mask.png'.format(i), show_mask)
                 
                 batch_x[i] = aug_image
-                batch_y[i] = transformed_mask
+                batch_y[i,:,:,0] = transformed_mask
+                #batch_x[i] = self.image_list[idx]
+                #batch_y[i,:,:,0] = self.mask_list[idx]
             else:
                 batch_x[i] = self.image_list[idx]
                 batch_y[i,:,:,0] = self.mask_list[idx]
@@ -103,4 +106,3 @@ class OneShotTrainingSequence(Sequence):
         batch_y[batch_y>=100] = 1
 
         return batch_x, batch_y
-

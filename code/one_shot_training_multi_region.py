@@ -108,12 +108,12 @@ u_net.load_weights("{}/{}/best_model.h5".format(args.model_dir, suffix))
 filename_list = []
 all_iou_list = []
 
-for i in range(len(test_sequence)):
-    output = u_net.predict(test_sequence[i][0], batch_size=args.batch_size)
+for i in range(len(validation_sequence)):
+    output = u_net.predict(validation_sequence[i][0], batch_size=args.batch_size)
     output = output[0,:,:,0]
     output[output>=0.5] = 1
     output[output<0.5] = 0
     
     show_mask = utils.drawResult(output)
     cv2.imwrite('{}/{}/{}.png'.format(args.output_dir, suffix,\
-            test_sequence.file_name_list[i]), show_mask)
+            validation_sequence.file_name_list[i]), show_mask)
