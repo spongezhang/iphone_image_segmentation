@@ -26,6 +26,16 @@ def drawMultiRegionMultiChannel(mask):
 
     return final_image
 
+def drawResult(mask):
+    final_image = np.zeros((mask.shape[0], mask.shape[1], 3), dtype = np.uint8)
+    #print(mask.shape)
+    if i == 0:
+        final_image[mask<0.5,:] = color[0]
+    else:
+        final_image[mask>=0.5,:] = color[1]
+
+    return final_image
+
 #draw image with index mask
 def drawMultiRegionIndex(index_mask):
     final_image = np.zeros((index_mask.shape[0], index_mask.shape[1], 3), dtype = np.uint8)

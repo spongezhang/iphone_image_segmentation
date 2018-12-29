@@ -22,7 +22,7 @@ parser.add_argument('--model_dir', default='../result/model/', help='folder to o
 parser.add_argument('--output_dir', default='../result/image/', help='folder to output log')
 
 parser.add_argument('--unet_depth', default=6, type=int, help='show step')
-parser.add_argument('--start_filters', default=32, type=int, help='show step')
+parser.add_argument('--start_filters', default=16, type=int, help='show step')
 
 parser.add_argument('--loss', default='iou', type=str)
 parser.add_argument('--metric', default='iou', type=str)
@@ -98,23 +98,22 @@ u_net.fit_generator(
     )
 
 # for final test
-#try:
-#    os.stat('{}/{}/'.format(args.output_dir, suffix))
-#except:
-#    os.makedirs('{}/{}/'.format(args.output_dir, suffix))
-#
-#u_net.load_weights("{}/{}/best_model.h5".format(args.model_dir, suffix))
-#
-#filename_list = []
-#all_iou_list = []
-#
-#for i in range(len(test_sequence)):
-#    #get predict
-#    output = u_net.predict(test_sequence[i][0], batch_size=args.batch_size)
-#    output = output[0,:,:,:]
-#    
-#    index_output = np.argmax(output, axis = 2)
-#
-#    show_mask = utils.drawMultiRegionIndex(index_output)
-#    cv2.imwrite('{}/{}/{}.png'.format(args.output_dir, suffix,\
-#            test_sequence.file_name_list[i]), show_mask)
+try:
+    os.stat('{}/{}/'.format(args.output_dir, suffix))
+except:
+    os.makedirs('{}/{}/'.format(args.output_dir, suffix))
+
+u_net.load_weights("{}/{}/best_model.h5".format(args.model_dir, suffix))
+
+filename_list = []
+all_iou_list = []
+
+for i in range(len(test_sequence)):
+    output = u_net.predict(test_sequence[i][0], batch_size=args.batch_size)
+    output = output[0,:,:,0]
+    output[output>=0.5] = 1
+    output[output<0.5] = 0
+    
+    show_mask = utils.drawResult(output)
+    cv2.imwrite('{}/{}/{}.png'.format(args.output_dir, suffix,\
+            test_sequence.file_name_list[i]), show_mask)
