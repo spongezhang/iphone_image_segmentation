@@ -5,16 +5,19 @@ from keras.utils.data_utils import Sequence
 from imgaug import augmenters as iaa
 import random
 import utils
+import glob
 
 class OneShotTrainingSequence(Sequence):
-    def __init__(self, image_dir, mask_dir, batch_size=1, image_width=75, image_height=75):
+    def __init__(self, image_dir, mask_dir, da=False, batch_size=1, image_width=64, image_height=64):
         self.image_width = image_width
         self.image_height = image_height
         self.da = da
-        self.image, self.mask, self.file_name_list = \
+        self.image_list, self.mask_list, self.file_name_list = \
                 self.load_image_and_mask(image_dir, mask_dir)
         self.batch_size = batch_size
-        self.channel_number = len(region_list)+1
+        self.channel_number = 3
+        self.seq = iaa.Sequential([
+            iaa.Add((-10, 10))])
 
     def load_image_and_mask(self, image_dir, mask_dir):
         image_list = []
@@ -24,7 +27,7 @@ class OneShotTrainingSequence(Sequence):
             pure_name = img_name.split('/')[-1]
             pure_name = pure_name.split('.')[0]
             file_name_list.append(pure_name)
-            im = cv2.imread(img_name, cv2.IMREAD_UNCHANGE)
+            im = cv2.imread(img_name, cv2.IMREAD_COLOR)
             im = cv2.resize(im, (self.image_width, self.image_height))
             # aug_image = cv2.equalizeHist(im_gray)
             aug_image = im
@@ -36,11 +39,12 @@ class OneShotTrainingSequence(Sequence):
         return np.asarray(image_list), np.asarray(mask_list), file_name_list
 
     def __len__(self):
-        return int(self.image.shape[0] / float(self.batch_size))
+        return int(self.image_list.shape[0] / float(self.batch_size))
 
     def __getitem__(self, idx):
+        idx = random.randint(0,self.image_list.shape[0]-1)
         batch_x = np.zeros(shape=(self.batch_size, self.image_width, self.image_height, 3), dtype=np.float32)
-        batch_y = np.zeros(shape=(self.batch_size, self.image_width, self.image_height, self.channel_number), dtype=np.uint8)
+        batch_y = np.zeros(shape=(self.batch_size, self.image_width, self.image_height, 1), dtype=np.uint8)
 
         for i in range(self.batch_size):
             if self.da:
@@ -61,7 +65,7 @@ class OneShotTrainingSequence(Sequence):
                 rotation_matrix[0:2, :] = tmp_rotation_matrix
                 
                 shearing_matrix = np.eye(3, dtype=np.float32)
-                if random.random() < -0.5:
+                if random.random() > -0.5:
                     shearing_matrix[0,1] = 0.0
                     shearing_matrix[1,0] = 0.0
                 else:
@@ -76,13 +80,13 @@ class OneShotTrainingSequence(Sequence):
 
                 transformed_image = cv2.warpPerspective(self.image_list[idx], transform_matrix, (self.image_width, self.image_height),\
                         flags=cv2.INTER_LINEAR, borderValue = (255,255,255))
-                transformed_mask = np.zeros((self.image_height, self.image_width, self.mask.shape[-1]), dtype = np.uint8)
+                transformed_mask = np.zeros((self.image_height, self.image_width, 1), dtype = np.uint8)
 
                 temp_mask = cv2.warpPerspective(self.mask_list[idx], transform_matrix, (self.image_width, self.image_height),\
                         flags=cv2.INTER_NEAREST, borderValue = (0))
                 transformed_mask[temp_mask>100] = 255
 
-                #aug_image = self.seq.augment_image(transformed_image)
+                aug_image = self.seq.augment_image(transformed_image)
                 #show_mask = utils.drawMultiRegionMultiChannel(transformed_mask)
                 ##aug_image = cv2.equalizeHist(aug_image)
                 #cv2.imwrite('../data/augmentation/{}_img.png'.format(i), aug_image)
@@ -92,7 +96,7 @@ class OneShotTrainingSequence(Sequence):
                 batch_y[i] = transformed_mask
             else:
                 batch_x[i] = self.image_list[idx]
-                batch_y[i] = self.mask_list[idx]
+                batch_y[i,:,:,0] = self.mask_list[idx]
         
         batch_x = batch_x/255.0
         batch_y[batch_y<100] = 0
